@@ -1,10 +1,14 @@
 const express = require('express');
 const app = express();
+require('dotenv').config();
 const cors = require('cors');
 const port = process.env.PORT || 5000;
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5173'],
+  credentials: true
+}));
 
 app.get('/',(req, res) => {
 res.send("Server is runnig");
@@ -26,7 +30,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
+    await client.connect();
     const cartColl = client.db("cocomaya-booms").collection("cart");
 
     app.get('/api/v1/cart',async (req,res) => { 
@@ -34,6 +38,10 @@ async function run() {
         const sortObj = {};
         const page = req.query.page || 0;
         const pageSize = req.query.pageSize || 10;
+        const userEmail = req.query.userEmail;
+        if (userEmail) {
+          queryObj.userEmail = userEmail;
+        }
         try {
             const result = await cartColl.find(queryObj).sort(sortObj).skip(page).limit(pageSize).toArray();
             res.send(result);
@@ -44,6 +52,7 @@ async function run() {
 
     app.post('/api/v1/cart',async (req,res) => { 
         const food = req.body;
+        // console.log(food)
         try {
             const result = await cartColl.insertOne(food);
             res.send(result);
@@ -54,7 +63,7 @@ async function run() {
     
     
 
-    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
