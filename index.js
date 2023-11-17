@@ -32,7 +32,7 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const cartColl = client.db("cocomaya-booms").collection("cart");
-
+    //Get Cart data from Database
     app.get('/api/v1/cart',async (req,res) => { 
         const queryObj = {};
         const sortObj = {};
@@ -50,6 +50,7 @@ async function run() {
         }
      })
 
+    //Add Data to cart
     app.post('/api/v1/cart',async (req,res) => { 
         const food = req.body;
         // console.log(food)
@@ -61,6 +62,21 @@ async function run() {
         }
      })
     
+    //Delete from cart
+    app.delete(`/api/v1/cart/:id`,async (req,res) => { 
+      const id = req.params.id;
+      const email = req.body.email;
+      const query = {
+        _id: new ObjectId(id),
+        email: email,
+      }
+      try {
+        const result = await cartColl.deleteOne(query);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send("Server Error!!")
+      }
+     })
     
 
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
