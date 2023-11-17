@@ -18,6 +18,25 @@ app.use(
   })
 );
 
+const verify = (req,res,next) => { 
+  console.log("Passed by middleware");
+  const token = req.cookies["cocoToken"]
+  // console.log(token)
+  if (!token) {
+    return res.status(401).send({message: "Unauthorized!"})
+  }
+
+  jwt.verify(token,process.env.jwt_secret, (err, decoded) => { 
+    if (err) {
+      console.error("jwt verification error!");
+      return res.status(401).send({message: "Unauthorized!"})
+    }
+    console.log("from middlewar", decoded)
+    res.user = decoded;
+    next();
+   })
+ }
+
 app.get("/", (req, res) => {
   res.send("Server is runnig");
 });
@@ -43,7 +62,7 @@ async function run() {
     app.post('/api/v1/jwt',async (req,res) => { 
       const email = req.body;
       // console.log(email)
-      const token = await jwt.sign({email},process.env.jwt_secret, {expiresIn: '1h'})
+      const token = await jwt.sign(email,process.env.jwt_secret, {expiresIn: '1h'})
       console.log(email, "this is token: ", token)
       try {
         res.cookie("cocoToken",token,{
@@ -128,7 +147,7 @@ async function run() {
       }
     });
     //Get Cart data from Database
-    app.get("/api/v1/cart", async (req, res) => {
+    app.get("/api/v1/cart",verify, async (req, res) => {
       const queryObj = {};
       const sortObj = {};
       const page = req.query.page || 0;
