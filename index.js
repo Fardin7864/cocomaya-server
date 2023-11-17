@@ -1,14 +1,20 @@
 const express = require("express");
 const app = express();
 require("dotenv").config();
+const jwt = require("jsonwebtoken");
 const cors = require("cors");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.7k1zdza.mongodb.net/?retryWrites=true&w=majority`;
 const port = process.env.PORT || 5000;
+var cookieParser = require('cookie-parser')
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(
   cors({
     origin: ["http://localhost:5173"],
     credentials: true,
+    methods: ["GET","PUT","POST","PATCH","DELETE"]
   })
 );
 
@@ -16,8 +22,6 @@ app.get("/", (req, res) => {
   res.send("Server is runnig");
 });
 
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.7k1zdza.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -34,7 +38,23 @@ async function run() {
     await client.connect();
     const cartColl = client.db("cocomaya-booms").collection("cart");
     const userColl = client.db("cocomaya-booms").collection("users");
-    const adminColl = client.db("cocomaya-booms").collection("admins");
+
+    //Jwt route
+    app.post('/api/v1/jwt',async (req,res) => { 
+      const email = req.body;
+      // console.log(email)
+      const token = await jwt.sign({email},process.env.jwt_secret, {expiresIn: '1h'})
+      console.log(email, "this is token: ", token)
+      try {
+        res.cookie("cocoToken",token,{
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        }).send(token);
+      } catch (error) {
+        res.status(500).send({message: "JWT error!"})
+      }
+     })
     //get Singleuser from database
     app.get("/api/v1/users", async (req, res) => {
       const email = req.query.email;
