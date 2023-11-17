@@ -32,6 +32,36 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const cartColl = client.db("cocomaya-booms").collection("cart");
+    const userColl = client.db("cocomaya-booms").collection("users");
+    //get Singleuser from database
+    app.get('/api/v1/users',async (req,res) => { 
+      const email = req.query.email;
+      const query = {};
+      if (email) {
+        query.email = email;
+      }
+      try {
+        const result = await userColl.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send("server error!")
+      }
+     })
+    //add user to database 
+    app.post('/api/v1/users',async (req,res) => { 
+      const user = req.body;
+      const query = {email: user.email}
+      try {
+        const signleUser = await userColl.findOne(query);
+        if (signleUser) {
+          return res.send({message: "This email already exist!"})
+        }
+        const result = await userColl.insertOne(user);
+        res.send(result)
+      } catch (err) {
+        res.status(5000).send("Server error!")
+      }
+     })
     //Get Cart data from Database
     app.get('/api/v1/cart',async (req,res) => { 
         const queryObj = {};
@@ -49,7 +79,6 @@ async function run() {
             res.status(500).send("Server Error!");
         }
      })
-
     //Add Data to cart
     app.post('/api/v1/cart',async (req,res) => { 
         const food = req.body;
@@ -60,8 +89,7 @@ async function run() {
         } catch (error) {
             res.status(500).send("Server Error!!")
         }
-     })
-    
+     })   
     //Delete from cart
     app.delete(`/api/v1/cart/:id`,async (req,res) => { 
       const id = req.params.id;
@@ -77,8 +105,7 @@ async function run() {
         res.status(500).send("Server Error!!")
       }
      })
-    
-
+  
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
