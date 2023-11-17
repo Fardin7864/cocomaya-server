@@ -1,21 +1,22 @@
-const express = require('express');
+const express = require("express");
 const app = express();
-require('dotenv').config();
-const cors = require('cors');
+require("dotenv").config();
+const cors = require("cors");
 const port = process.env.PORT || 5000;
 
 app.use(express.json());
-app.use(cors({
-  origin: ['http://localhost:5173'],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+  })
+);
 
-app.get('/',(req, res) => {
-res.send("Server is runnig");
-})
+app.get("/", (req, res) => {
+  res.send("Server is runnig");
+});
 
-
-const { MongoClient, ServerApiVersion,ObjectId } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.7k1zdza.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -24,7 +25,7 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 async function run() {
@@ -33,8 +34,9 @@ async function run() {
     await client.connect();
     const cartColl = client.db("cocomaya-booms").collection("cart");
     const userColl = client.db("cocomaya-booms").collection("users");
+    const adminColl = client.db("cocomaya-booms").collection("admins");
     //get Singleuser from database
-    app.get('/api/v1/users',async (req,res) => { 
+    app.get("/api/v1/users", async (req, res) => {
       const email = req.query.email;
       const query = {};
       if (email) {
@@ -44,69 +46,119 @@ async function run() {
         const result = await userColl.find(query).toArray();
         res.send(result);
       } catch (error) {
-        res.status(500).send("server error!")
+        res.status(500).send("server error!");
       }
-     })
-    //add user to database 
-    app.post('/api/v1/users',async (req,res) => { 
+    });
+    //add user to database
+    app.post("/api/v1/users", async (req, res) => {
       const user = req.body;
-      const query = {email: user.email}
+      const query = { email: user.email };
       try {
         const signleUser = await userColl.findOne(query);
         if (signleUser) {
-          return res.send({message: "This email already exist!"})
+          return res.send({ message: "This email already exist!" });
         }
         const result = await userColl.insertOne(user);
-        res.send(result)
+        res.send(result);
       } catch (err) {
-        res.status(5000).send("Server error!")
+        res.status(5000).send("Server error!");
       }
+    });
+    //create user to admin
+    app.patch('/api/v1/users/admin/:id', async (req,res) => { 
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)};
+      const update = {
+        $set:{role: 'admin'}
+      }
+      try {
+        const result = await userColl.updateOne(query,update)
+        res.send(result)
+      } catch (error) {
+        res.status(500).send("Server error!")
+      } 
      })
-    //Get Cart data from Database
-    app.get('/api/v1/cart',async (req,res) => { 
-        const queryObj = {};
-        const sortObj = {};
-        const page = req.query.page || 0;
-        const pageSize = req.query.pageSize || 10;
-        const userEmail = req.query.userEmail;
-        if (userEmail) {
-          queryObj.userEmail = userEmail;
-        }
-        try {
-            const result = await cartColl.find(queryObj).sort(sortObj).skip(page).limit(pageSize).toArray();
-            res.send(result);
-        } catch (error) {
-            res.status(500).send("Server Error!");
-        }
+    //remove from admin 
+    app.patch('/api/v1/users/normal/:id', async (req,res) => { 
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)};
+      const update = {
+        $set:{role: 'normal'}
+      }
+      try {
+        const result = await userColl.updateOne(query,update)
+        res.send(result)
+      } catch (error) {
+        res.status(500).send("Server error!")
+      } 
      })
-    //Add Data to cart
-    app.post('/api/v1/cart',async (req,res) => { 
-        const food = req.body;
-        // console.log(food)
-        try {
-            const result = await cartColl.insertOne(food);
-            res.send(result);
-        } catch (error) {
-            res.status(500).send("Server Error!!")
-        }
-     })   
-    //Delete from cart
-    app.delete(`/api/v1/cart/:id`,async (req,res) => { 
+    //Delete from users list
+    app.delete(`/api/v1/users/:id`, async (req, res) => {
       const id = req.params.id;
       const email = req.body.email;
       const query = {
         _id: new ObjectId(id),
         email: email,
+      };
+      try {
+        const result = await userColl.deleteOne(query);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send("Server Error!!");
       }
+    });
+    //Get Cart data from Database
+    app.get("/api/v1/cart", async (req, res) => {
+      const queryObj = {};
+      const sortObj = {};
+      const page = req.query.page || 0;
+      const pageSize = req.query.pageSize || 10;
+      const userEmail = req.query.userEmail;
+      if (userEmail) {
+        queryObj.userEmail = userEmail;
+      }
+      try {
+        const result = await cartColl
+          .find(queryObj)
+          .sort(sortObj)
+          .skip(page)
+          .limit(pageSize)
+          .toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send("Server Error!");
+      }
+    });
+    //Add Data to cart
+    app.post("/api/v1/cart", async (req, res) => {
+      const food = req.body;
+      // console.log(food)
+      try {
+        const result = await cartColl.insertOne(food);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send("Server Error!!");
+      }
+    });
+    //Delete from cart
+    app.delete(`/api/v1/cart/:id`, async (req, res) => {
+      const id = req.params.id;
+      const email = req.body.email;
+      const query = {
+        _id: new ObjectId(id),
+        email: email,
+      };
       try {
         const result = await cartColl.deleteOne(query);
         res.send(result);
       } catch (error) {
-        res.status(500).send("Server Error!!")
+        res.status(500).send("Server Error!!");
       }
-     })
-  
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    });
+
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
@@ -114,7 +166,6 @@ async function run() {
 }
 run().catch(console.dir);
 
-
-app.listen(port, () => { 
-    console.log(`Server is runnig on port ${port}`)
- })
+app.listen(port, () => {
+  console.log(`Server is runnig on port ${port}`);
+});
