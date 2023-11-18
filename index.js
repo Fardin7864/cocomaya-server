@@ -19,7 +19,7 @@ app.use(
 );
 
 const verify = (req,res,next) => { 
-  console.log("Passed by middleware");
+  // console.log("Passed by middleware");
   const token = req.cookies["cocoToken"]
   // console.log(token)
   if (!token) {
@@ -31,8 +31,8 @@ const verify = (req,res,next) => {
       console.error("jwt verification error!");
       return res.status(401).send({message: "Unauthorized!"})
     }
-    console.log("from middlewar", decoded)
-    res.user = decoded;
+    // console.log("from middlewar", decoded)
+    req.user = decoded;
     next();
    })
  }
@@ -63,7 +63,7 @@ async function run() {
       const email = req.body;
       // console.log(email)
       const token = await jwt.sign(email,process.env.jwt_secret, {expiresIn: '1h'})
-      console.log(email, "this is token: ", token)
+      // console.log(email, "this is token: ", token)
       try {
         res.cookie("cocoToken",token,{
           httpOnly: true,
@@ -74,15 +74,49 @@ async function run() {
         res.status(500).send({message: "JWT error!"})
       }
      })
-    //get Singleuser from database
-    app.get("/api/v1/users", async (req, res) => {
-      const email = req.query.email;
-      const query = {};
-      if (email) {
-        query.email = email;
+
+    // verify admin
+const verifyAdmin =async (req,res,next) => { 
+  const email = req.user.email;
+  // console.log(email)
+  const query = {email: email}
+  console.log(query)
+  const user = await userColl.findOne(query)
+  // console.log("this is from middle:",user)
+  const isAdmin = user?.role === "admin"
+  console.log(isAdmin)
+  if (!isAdmin) {
+    return res.status(403).send({message: "Forbidden!"})
+  }
+  next();
+ }
+
+     //check admin 
+    app.get('/api/v1/users/admin/:email',verify, async (req,res) => { 
+      const email = req.params.email;
+      const query = {email: email};
+      // console.log("this from middle",req.user)
+      if (email !== req.user.email) {
+        return res.status(403).send("Unauthorized!")
       }
       try {
-        const result = await userColl.find(query).toArray();
+        const user = await userColl.findOne(query);
+        // console.log(user)
+        let admin = false;
+        if (user) {
+          admin = user?.role === 'admin';
+        }
+        // console.log(admin)
+        res.send(admin);
+      } catch (error) {
+        res.status(500).send("server error!")
+      }
+     })
+    //get users from database
+    app.get("/api/v1/users",verify,verifyAdmin, async (req, res) => {
+      console.log("user route hited!!!")
+      try {
+        const result = await userColl.find().toArray();
         res.send(result);
       } catch (error) {
         res.status(500).send("server error!");
