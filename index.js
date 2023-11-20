@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
+const stipe = require("stripe")(process.env.payment_key)
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.7k1zdza.mongodb.net/?retryWrites=true&w=majority`;
@@ -41,6 +42,27 @@ app.get("/", (req, res) => {
   res.send("Server is runnig");
 });
 
+//stipe 
+app.post('/api/v1/create-payment-intent',async (req,res) => { 
+  const {price} = req.body;
+  const amount = parseInt(price * 100);
+  console.log(amount,"total amount!")
+  try {
+    const paymentIntent = await stipe.paymentIntents.create({
+      amount: amount,
+      currency: 'usd',
+      payment_method_types: ['card']
+    })
+    res.send({
+      clientSecret: paymentIntent.client_secret,
+    })
+  } catch (err) {
+    console.log(err)
+    res.status(500).send("server error")
+  }
+  
+ })
+
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -57,6 +79,7 @@ async function run() {
     await client.connect();
     const cartColl = client.db("cocomaya-booms").collection("cart");
     const userColl = client.db("cocomaya-booms").collection("users");
+    const menuColl = client.db("cocomaya-booms").collection("menu");
 
     //Jwt route
     app.post('/api/v1/jwt',async (req,res) => { 
@@ -76,21 +99,20 @@ async function run() {
      })
 
     // verify admin
-const verifyAdmin =async (req,res,next) => { 
-  const email = req.user.email;
-  // console.log(email)
-  const query = {email: email}
-  console.log(query)
-  const user = await userColl.findOne(query)
-  // console.log("this is from middle:",user)
-  const isAdmin = user?.role === "admin"
-  console.log(isAdmin)
-  if (!isAdmin) {
-    return res.status(403).send({message: "Forbidden!"})
-  }
-  next();
- }
-
+    const verifyAdmin =async (req,res,next) => { 
+      const email = req.user.email;
+      // console.log(email)
+      const query = {email: email}
+      console.log(query)
+      const user = await userColl.findOne(query)
+      // console.log("this is from middle:",user)
+      const isAdmin = user?.role === "admin"
+      console.log(isAdmin)
+      if (!isAdmin) {
+        return res.status(403).send({message: "Forbidden!"})
+      }
+      next();
+    }
      //check admin 
     app.get('/api/v1/users/admin/:email',verify, async (req,res) => { 
       const email = req.params.email;
@@ -111,6 +133,69 @@ const verifyAdmin =async (req,res,next) => {
       } catch (error) {
         res.status(500).send("server error!")
       }
+     })
+    //Add item on menu 
+    app.post('/api/v1/menu',async (req,res) => { 
+      const menuItem = req.body;
+      try {
+        const result = await menuColl.insertOne(menuItem);
+        res.send(result)
+      } catch (error) {
+        res.status(500).send("Server Error!")
+      }
+     })
+    //Get item from menu
+    app.get('/api/v1/menu',async (req,res) => { 
+      const query = {};
+      try {
+        const result = await menuColl.find(query).toArray();
+        res.send(result)
+      } catch (error) {
+        res.status(500).send("Server error!")
+      }
+     })
+    //Get Single item from menu
+    app.get('/api/v1/menu/:id',async (req,res) => { 
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)};
+      try {
+        const result = await menuColl.findOne(query);
+        res.send(result)
+      } catch (error) {
+        res.status(500).send("Server error!")
+      }
+     })
+    //Update Single item from menu
+    app.patch('/api/v1/menu/update/:id', async (req,res) => { 
+      const item = req.body;
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)};
+      const update = {
+        $set:{
+          name: item.name,
+          recipe:item.recipe,
+          image:item.image,
+          category:item.category,
+          price:item.price,
+        }
+      }
+      try {
+        const result = await menuColl.updateOne(query,update)
+        res.send(result)
+      } catch (error) {
+        res.status(500).send("Server error!")
+      } 
+     })
+    //Delete Single item from menu
+    app.delete('/api/v1/menu/:id', async (req,res) => { 
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)};
+      try {
+        const result = await menuColl.deleteOne(query)
+        res.send(result)
+      } catch (error) {
+        res.status(500).send("Server error!")
+      } 
      })
     //get users from database
     app.get("/api/v1/users",verify,verifyAdmin, async (req, res) => {
