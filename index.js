@@ -1,8 +1,8 @@
 const express = require("express");
 const app = express();
-require("dotenv").config();
 const port = process.env.PORT || 5000;
 const jwt = require("jsonwebtoken");
+require("dotenv").config();
 const stipe = require("stripe")(process.env.payment_key);
 const cors = require("cors");
 var cookieParser = require("cookie-parser");
@@ -96,6 +96,10 @@ async function run() {
       }
       next();
     };
+
+
+
+    
     //check admin
     app.get("/api/v1/users/admin/:email", verify, async (req, res) => {
       const email = req.params.email;
