@@ -60,7 +60,7 @@ async function run() {
     const menuColl = client.db("cocomaya-booms").collection("menu");
     const paymentColl = client.db("cocomaya-booms").collection("payments");
 
-    //Jwt route
+    //Jwt route //done
     app.post("/api/v1/jwt", async (req, res) => {
       const email = req.body;
       // console.log(email)
@@ -81,7 +81,7 @@ async function run() {
       }
     });
 
-    // verify admin
+    // verify admin //done
     const verifyAdmin = async (req, res, next) => {
       const email = req.user.email;
       // console.log(email)
@@ -100,7 +100,7 @@ async function run() {
 
 
     
-    //check admin
+    //check admin //done
     app.get("/api/v1/users/admin/:email", verify, async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
@@ -121,7 +121,10 @@ async function run() {
         res.status(500).send("server error!");
       }
     });
-    //Add item on menu
+
+
+
+    //Add item on menu //done
     app.post("/api/v1/menu", async (req, res) => {
       const menuItem = req.body;
       try {
@@ -131,7 +134,7 @@ async function run() {
         res.status(500).send("Server Error!");
       }
     });
-    //Get item from menu
+    //Get item from menu //done
     app.get("/api/v1/menu", async (req, res) => {
       const query = {};
       try {
@@ -141,6 +144,8 @@ async function run() {
         res.status(500).send("Server error!");
       }
     });
+
+    
     //Get Single item from menu
     app.get("/api/v1/menu/:id", async (req, res) => {
       const id = req.params.id;
@@ -184,7 +189,8 @@ async function run() {
         res.status(500).send("Server error!");
       }
     });
-    //get users from database
+
+    //get users from database //done
     app.get("/api/v1/users", verify, verifyAdmin, async (req, res) => {
       console.log("user route hited!!!");
       try {
@@ -194,7 +200,8 @@ async function run() {
         res.status(500).send("server error!");
       }
     });
-    //add user to database
+
+    //add user to database //done
     app.post("/api/v1/users", async (req, res) => {
       const user = req.body;
       const query = { email: user.email };
@@ -209,7 +216,9 @@ async function run() {
         res.status(5000).send("Server error!");
       }
     });
-    //create user to admin
+
+
+    //create user to admin // done
     app.patch("/api/v1/users/admin/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -223,7 +232,9 @@ async function run() {
         res.status(500).send("Server error!");
       }
     });
-    //remove from admin
+
+
+    //remove from admin  //done
     app.patch("/api/v1/users/normal/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -237,7 +248,8 @@ async function run() {
         res.status(500).send("Server error!");
       }
     });
-    //Delete from users list
+
+    //Delete from users list //done
     app.delete(`/api/v1/users/:id`, async (req, res) => {
       const id = req.params.id;
       const email = req.body.email;
@@ -252,7 +264,8 @@ async function run() {
         res.status(500).send("Server Error!!");
       }
     });
-    //Get Cart data from Database
+
+    //Get Cart data from Database //done
     app.get("/api/v1/cart", verify, async (req, res) => {
       const queryObj = {};
       const sortObj = {};
@@ -274,7 +287,8 @@ async function run() {
         res.status(500).send("Server Error!");
       }
     });
-    //Add Data to cart
+
+    //Add Data to cart // done
     app.post("/api/v1/cart", async (req, res) => {
       const food = req.body;
       // console.log(food)
@@ -285,7 +299,9 @@ async function run() {
         res.status(500).send("Server Error!!");
       }
     });
-    //Delete from cart
+
+
+    //Delete from cart //done
     app.delete(`/api/v1/cart/:id`, async (req, res) => {
       const id = req.params.id;
       const email = req.body.email;

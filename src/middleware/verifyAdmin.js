@@ -1,10 +1,11 @@
+const Users = require("../models/Users");
 
 const verifyAdmin = async (req, res, next) => {
     const email = req.user.email;
     // console.log(email)
     const query = { email: email };
     console.log(query);
-    const user = await userColl.findOne(query);
+    const user = await Users.findOne(query);
     // console.log("this is from middle:",user)
     const isAdmin = user?.role === "admin";
     console.log(isAdmin);
